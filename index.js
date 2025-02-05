@@ -3,6 +3,7 @@ const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
 const timerDisplay = document.getElementById('timer');
 
+
 // --- Game Settings (Adjust These to your liking) ---
 const canvasWidth = 800; // Adjust as needed
 const canvasHeight = 1000;
@@ -27,9 +28,11 @@ let gameRunning = true;
 const circles = []; // Stores all circles
 let mouseX, mouseY, isDragging = false;
 
+
 const appContainer = document.getElementById('app-container');
 const gameContainer = document.querySelector('.game-container');
 const gameWrapper = document.getElementById('game-wrapper');
+
 
 [appContainer, gameContainer, gameWrapper].forEach(element => {
     element.addEventListener('touchstart', (e) => {
@@ -45,10 +48,12 @@ const gameWrapper = document.getElementById('game-wrapper');
     }, { passive: false });
 });
 
+
 // Prevent body scrolling
 document.body.style.overflow = 'hidden';
 document.body.style.position = 'fixed';
 document.documentElement.style.overflow = 'hidden';
+
 
 function updateScore(amount) {
     score += amount;
@@ -63,6 +68,7 @@ function circle(x, y, radius, type = 'normal') {
   return { x, y, radius, vx: (Math.random() * 2 - 1) * circleBaseSpeed, vy: (Math.random() * 2 - 1) * circleBaseSpeed, type };
 }
 
+
 function createCircle() {
     const radius = circleMinRadius + Math.random() * (circleMaxRadius - circleMinRadius);
     let x, y;
@@ -72,35 +78,39 @@ function createCircle() {
       x = Math.random() < 0.5 ? -radius : canvasWidth + radius;
       y = Math.random() * canvasHeight;
     }
-    else {
+    else
+    {
         x = Math.random() * canvasWidth;
         y = Math.random() < 0.5 ? -radius : canvasHeight + radius;
+
     }
+
 
     let type = 'normal';
     if (Math.random() < clockCircleChance) type = 'clock';
     else if (Math.random() < bombCircleChance) type = 'bomb';
 
     circles.push(circle(x, y, radius, type));
-}
+
+  }
 
 function drawCircle(circle) {
     ctx.beginPath();
     ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
 
-    switch (circle.type) {
-        case 'clock':
-            ctx.fillStyle = 'green';
-            break;
-        case 'bomb':
-            ctx.fillStyle = 'red';
-            break;
-        default:
-            ctx.fillStyle = 'blue'; // Normal circle
-    }
+  switch (circle.type) {
+    case 'clock':
+      ctx.fillStyle = 'green';
+      break;
+      case 'bomb':
+          ctx.fillStyle = 'red';
+          break;
+    default:
+      ctx.fillStyle = 'blue'; // Normal circle
+  }
 
-    ctx.fill();
-    ctx.closePath();
+  ctx.fill();
+  ctx.closePath();
 }
 
 function handleCircleCollision(circleIndex) {
@@ -115,36 +125,44 @@ function handleCircleCollision(circleIndex) {
         break;
     default:
       updateScore(scorePerCircle);
-  }
+    }
+
 
   circles.splice(circleIndex, 1);
 }
+
 
 function updateGame() {
   if (!gameRunning) return;
   
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  for (let i = circles.length - 1; i >= 0; i--) {
-    let circle = circles[i];
 
-    circle.x += circle.vx * circleSpeedAdjustment;
-    circle.y += circle.vy * circleSpeedAdjustment;
+    for (let i = circles.length - 1; i >= 0; i--) {
+        let circle = circles[i];
 
-    // Remove circle if it's off the screen
-    if (circle.x + circle.radius < 0 || circle.x - circle.radius > canvasWidth ||
-        circle.y + circle.radius < 0 || circle.y - circle.radius > canvasHeight) {
+        circle.x += circle.vx * circleSpeedAdjustment;
+        circle.y += circle.vy * circleSpeedAdjustment;
+
+
+        // Remove circle if its off the screen
+       if (circle.x + circle.radius < 0 || circle.x - circle.radius > canvasWidth ||
+        circle.y + circle.radius < 0 || circle.y - circle.radius > canvasHeight )
+        {
         circles.splice(i, 1);
         continue;
-    }
+        }
 
-    drawCircle(circle);
+        drawCircle(circle);
 
-    if (isDragging && isCircleHit(mouseX, mouseY, circle)) {
-        handleCircleCollision(i);
-        break; // only cut one at a time
+
+        if (isDragging && isCircleHit(mouseX, mouseY, circle))
+        {
+            handleCircleCollision(i);
+            break; // only cut one at a time
+        }
+
     }
-  }
 }
 
 function gameLoop() {
@@ -218,31 +236,21 @@ function isCircleHit(x, y, circle) {
     return Math.sqrt(distX * distX + distY * distY) <= circle.radius;
 }
 
+
 function handleTouchStart(e) {
-    e.preventDefault();
-    e.stopPropagation();
     isDragging = true;
-    const rect = canvas.getBoundingClientRect();
-    mouseX = e.touches[0].clientX - rect.left;
-    mouseY = e.touches[0].clientY - rect.top;
-    console.log('Touch Start:', mouseX, mouseY); // Debugging
+    mouseX = e.touches[0].clientX - canvas.offsetLeft;
+    mouseY = e.touches[0].clientY - canvas.offsetTop;
 }
 
 function handleTouchMove(e) {
     if (!isDragging) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = canvas.getBoundingClientRect();
-    mouseX = e.touches[0].clientX - rect.left;
-    mouseY = e.touches[0].clientY - rect.top;
-    console.log('Touch Move:', mouseX, mouseY); // Debugging
+    mouseX = e.touches[0].clientX - canvas.offsetLeft;
+    mouseY = e.touches[0].clientY - canvas.offsetTop;
 }
 
-function handleTouchEnd(e) {
-    e.preventDefault();
-    e.stopPropagation();
+function handleTouchEnd() {
     isDragging = false;
-    console.log('Touch End'); // Debugging
 }
 
 function handleMouseDown(e) {
@@ -267,13 +275,21 @@ function initGame(){
     gameLoop();
     gameTimer();
 
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    canvas.addEventListener('touchstart', handleTouchStart, false);
+    canvas.addEventListener('touchmove', handleTouchMove, false);
+    canvas.addEventListener('touchend', handleTouchEnd, false);
+
 
     canvas.addEventListener('mousedown', handleMouseDown, false);
     canvas.addEventListener('mousemove', handleMouseMove, false);
     canvas.addEventListener('mouseup', handleMouseUp, false);
 }
 
-initGame(); 
+
+initGame();
+
+
+//  // total working game above 
+
+ 
