@@ -8,24 +8,24 @@ const canvasWidth = 800;
 const canvasHeight = 1000;
 canvas.width = canvasWidth;
 canvas.height = canvasHeight;
-const circleMinRadius = 20;
-const circleMaxRadius = 50;
-const circleSpawnFrequency = 1000;
-const circleBaseSpeed = 5;
-const scorePerCircle = 10;
+const squareMinSize = 20;
+const squareMaxSize = 50;
+const squareSpawnFrequency = 1000;
+const squareBaseSpeed = 5;
+const scorePerSquare = 10;
 const timeBonusPerClock = 5;
 const scorePenaltyBomb = 50;
-const clockCircleChance = 0.1;
-const bombCircleChance = 0.05;
+const clockSquareChance = 0.1;
+const bombSquareChance = 0.05;
 
-let circleSpeedAdjustment = 1;
-let circleSpawnAdjust = 1;
+let squareSpeedAdjustment = 1;
+let squareSpawnAdjust = 1;
 let score = 0;
 let timeLeft = 60;
 let gameRunning = true;
 let lastSliceTime = 0;
 
-const circles = [];
+const squares = [];
 let mouseX, mouseY, lastX, lastY;
 let isDragging = false;
 let slicePoints = [];
@@ -81,65 +81,65 @@ function updateTimerDisplay() {
     timerDisplay.textContent = `Time: ${timeLeft}`;
 }
 
-function circle(x, y, radius, type = 'normal') {
+function square(x, y, size, type = 'normal') {
     return {
-        x, y, radius,
-        vx: (Math.random() * 2 - 1) * circleBaseSpeed,
-        vy: (Math.random() * 2 - 1) * circleBaseSpeed,
+        x, y, size,
+        vx: (Math.random() * 2 - 1) * squareBaseSpeed,
+        vy: (Math.random() * 2 - 1) * squareBaseSpeed,
         type
     };
 }
 
-function createCircle() {
+function createSquare() {
     // Increase spawn rate and speed as time decreases
     if (timeLeft < 30) {
-        circleSpeedAdjustment = 1.5;
-        circleSpawnAdjust = 1.5;
+        squareSpeedAdjustment = 1.5;
+        squareSpawnAdjust = 1.5;
     }
     if (timeLeft < 15) {
-        circleSpeedAdjustment = 2;
-        circleSpawnAdjust = 2;
+        squareSpeedAdjustment = 2;
+        squareSpawnAdjust = 2;
     }
 
-    const radius = circleMinRadius + Math.random() * (circleMaxRadius - circleMinRadius);
+    const size = squareMinSize + Math.random() * (squareMaxSize - squareMinSize);
     const spawnEdge = Math.floor(Math.random() * 4);
     let x, y;
 
     switch(spawnEdge) {
         case 0: // top
             x = Math.random() * canvasWidth;
-            y = -radius;
+            y = -size;
             break;
         case 1: // right
-            x = canvasWidth + radius;
+            x = canvasWidth + size;
             y = Math.random() * canvasHeight;
             break;
         case 2: // bottom
             x = Math.random() * canvasWidth;
-            y = canvasHeight + radius;
+            y = canvasHeight + size;
             break;
         case 3: // left
-            x = -radius;
+            x = -size;
             y = Math.random() * canvasHeight;
             break;
     }
 
     let type = 'normal';
-    if (Math.random() < clockCircleChance) type = 'clock';
-    else if (Math.random() < bombCircleChance) type = 'bomb';
+    if (Math.random() < clockSquareChance) type = 'clock';
+    else if (Math.random() < bombSquareChance) type = 'bomb';
 
-    circles.push(circle(x, y, radius, type));
+    squares.push(square(x, y, size, type));
 }
 
 function drawSliceEffect(x1, y1, x2, y2) {
     sliceEffects.push(new SliceEffect(x1, y1, x2, y2));
 }
 
-function drawCircle(circle) {
+function drawSquare(square) {
     ctx.beginPath();
-    ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+    ctx.rect(square.x, square.y, square.size, square.size);
     
-    switch (circle.type) {
+    switch (square.type) {
         case 'clock':
             ctx.fillStyle = '#32CD32';
             break;
@@ -157,26 +157,25 @@ function drawCircle(circle) {
     ctx.closePath();
 }
 
-// Continue in next part..
-function handleCircleCollision(circleIndex) {
-    const circle = circles[circleIndex];
+function handleSquareCollision(squareIndex) {
+    const square = squares[squareIndex];
     
     // Add particle effect on collision
     for (let i = 0; i < 8; i++) {
         const angle = (Math.PI * 2 * i) / 8;
         const velocity = 5;
         particles.push({
-            x: circle.x,
-            y: circle.y,
+            x: square.x,
+            y: square.y,
             vx: Math.cos(angle) * velocity,
             vy: Math.sin(angle) * velocity,
             alpha: 1,
-            color: circle.type === 'clock' ? '#32CD32' : 
-                   circle.type === 'bomb' ? '#FF4500' : '#4169E1'
+            color: square.type === 'clock' ? '#32CD32' : 
+                   square.type === 'bomb' ? '#FF4500' : '#4169E1'
         });
     }
 
-    switch (circle.type) {
+    switch (square.type) {
         case 'clock':
             timeLeft += timeBonusPerClock;
             break;
@@ -184,10 +183,10 @@ function handleCircleCollision(circleIndex) {
             updateScore(-scorePenaltyBomb);
             break;
         default:
-            updateScore(scorePerCircle);
+            updateScore(scorePerSquare);
     }
 
-    circles.splice(circleIndex, 1);
+    squares.splice(squareIndex, 1);
 }
 
 function updateGame() {
@@ -201,21 +200,21 @@ function updateGame() {
         return effect.alpha > 0;
     });
 
-    // Update and draw circles
-    for (let i = circles.length - 1; i >= 0; i--) {
-        let circle = circles[i];
-        circle.x += circle.vx * circleSpeedAdjustment;
-        circle.y += circle.vy * circleSpeedAdjustment;
+    // Update and draw squares
+    for (let i = squares.length - 1; i >= 0; i--) {
+        let square = squares[i];
+        square.x += square.vx * squareSpeedAdjustment;
+        square.y += square.vy * squareSpeedAdjustment;
 
-        if (circle.x + circle.radius < 0 || 
-            circle.x - circle.radius > canvasWidth ||
-            circle.y + circle.radius < 0 || 
-            circle.y - circle.radius > canvasHeight) {
-            circles.splice(i, 1);
+        if (square.x + square.size < 0 || 
+            square.x - square.size > canvasWidth ||
+            square.y + square.size < 0 || 
+            square.y - square.size > canvasHeight) {
+            squares.splice(i, 1);
             continue;
         }
 
-        drawCircle(circle);
+        drawSquare(square);
     }
 
     // Check for slicing
@@ -227,10 +226,10 @@ function updateGame() {
         if (distance > 10) {
             drawSliceEffect(lastX, lastY, mouseX, mouseY);
             
-            // Check for circle hits
-            circles.forEach((circle, index) => {
-                if (isCircleSliced(lastX, lastY, mouseX, mouseY, circle)) {
-                    handleCircleCollision(index);
+            // Check for square hits
+            squares.forEach((square, index) => {
+                if (isSquareSliced(lastX, lastY, mouseX, mouseY, square)) {
+                    handleSquareCollision(index);
                 }
             });
         }
@@ -240,18 +239,18 @@ function updateGame() {
     lastY = mouseY;
 }
 
-function isCircleSliced(x1, y1, x2, y2, circle) {
+function isSquareSliced(x1, y1, x2, y2, square) {
     const lineLength = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
     if (lineLength === 0) return false;
 
-    const dot = (((circle.x-x1)*(x2-x1)) + ((circle.y-y1)*(y2-y1))) / (lineLength**2);
+    const dot = (((square.x-x1)*(x2-x1)) + ((square.y-y1)*(y2-y1))) / (lineLength**2);
     const closestX = x1 + (dot * (x2-x1));
     const closestY = y1 + (dot * (y2-y1));
 
     if (dot < 0 || dot > 1) return false;
 
-    const distance = Math.sqrt((closestX-circle.x)**2 + (closestY-circle.y)**2);
-    return distance <= circle.radius;
+    const distance = Math.sqrt((closestX-square.x)**2 + (closestY-square.y)**2);
+    return distance <= square.size / 2;
 }
 
 // Touch event handlers
@@ -269,6 +268,16 @@ function handleTouchMove(e) {
     const touch = e.touches[0];
     mouseX = touch.clientX - canvas.offsetLeft;
     mouseY = touch.clientY - canvas.offsetTop;
+
+    // Check for square hits
+    squares.forEach((square, index) => {
+        if (isSquareSliced(lastX, lastY, mouseX, mouseY, square)) {
+            handleSquareCollision(index);
+        }
+    });
+
+    lastX = mouseX;
+    lastY = mouseY;
 }
 
 function handleTouchEnd() {
@@ -290,6 +299,16 @@ function handleMouseMove(e) {
     if (!isDragging) return;
     mouseX = e.clientX - canvas.offsetLeft;
     mouseY = e.clientY - canvas.offsetTop;
+
+    // Check for square hits
+    squares.forEach((square, index) => {
+        if (isSquareSliced(lastX, lastY, mouseX, mouseY, square)) {
+            handleSquareCollision(index);
+        }
+    });
+
+    lastX = mouseX;
+    lastY = mouseY;
 }
 
 function handleMouseUp() {
@@ -299,7 +318,7 @@ function handleMouseUp() {
 }
 
 function initGame() {
-    setInterval(createCircle, circleSpawnFrequency/circleSpawnAdjust);
+    setInterval(createSquare, squareSpawnFrequency/squareSpawnAdjust);
     requestAnimationFrame(gameLoop);
     gameTimer();
 
@@ -314,7 +333,20 @@ function initGame() {
 
 function gameLoop() {
     updateGame();
-    if(gameRunning) requestAnimationFrame(gameLoop);
+    requestAnimationFrame(gameLoop);
+}
+
+function gameTimer() {
+    const timer = setInterval(() => {
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            gameRunning = false;
+            alert('Game Over! Final Score: ' + score);
+        } else {
+            timeLeft -= 1;
+            updateTimerDisplay();
+        }
+    }, 1000);
 }
 
 initGame();
