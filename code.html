@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Fruit Slasher</title>
+  <link rel="stylesheet" href="css/code.css">
+</head>
+<body>
+  <div id="app-container">
+    <div class="sticky-header">
+      <div class="game-header">
+        <h1>Fruit Slasher</h1>
+      </div>
+      <div id="gameUI">
+        <div id="score">Score: 0</div>
+        <div id="timer">Time: 60</div>
+      </div>
+    </div>
+    <div class="game-container">
+      <div id="game-wrapper">
+        <canvas id="gameCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+  <script src="js/code.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(() => {
+            console.log("Telegram WebApp is ready");
+        });
+
+        const canvas = document.getElementById('gameCanvas');
+        const container = canvas.parentElement;
+
+        function resizeCanvas() {
+            const containerAspectRatio = container.clientWidth / container.clientHeight;
+            const gameAspectRatio = 800 / 1000; // From original game dimensions
+
+            if (containerAspectRatio > gameAspectRatio) {
+                canvas.style.width = 'auto';
+                canvas.style.height = '100%';
+            } else {
+                canvas.style.width = '100%';
+                canvas.style.height = 'auto';
+            }
+
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+
+        // Prevent default touch behavior on the canvas
+         canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+        }, false);
+
+        canvas.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+        }, false);
+
+         canvas.addEventListener('touchend', function(e) {
+            e.preventDefault();
+        }, false);
+    </script>
+   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+   <script src="js/firebaseconfig.js"></script>
+</body>
+</html>
+
+
+
+
