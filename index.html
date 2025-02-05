@@ -26,24 +26,53 @@
   <script src="./index.js"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready(() => {
-        console.log("Telegram WebApp is ready");
-    });
+        const tg = window.Telegram.WebApp;
+        tg.ready(() => {
+            console.log("Telegram WebApp is ready");
+        });
 
-    // Prevent default touch behavior on the canvas
-    const canvas = document.getElementById('gameCanvas');
-    canvas.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-    }, false);
+        const canvas = document.getElementById('gameCanvas');
+        const container = canvas.parentElement;
 
-    canvas.addEventListener('touchmove', function(e) {
-        e.preventDefault();
-    }, false);
+        function resizeCanvas() {
+            const containerAspectRatio = container.clientWidth / container.clientHeight;
+            const gameAspectRatio = 800 / 1000; // From original game dimensions
 
-    canvas.addEventListener('touchend', function(e) {
-        e.preventDefault();
-    }, false);
-  </script>
+            if (containerAspectRatio > gameAspectRatio) {
+                canvas.style.width = 'auto';
+                canvas.style.height = '100%';
+            } else {
+                canvas.style.width = '100%';
+                canvas.style.height = 'auto';
+            }
+
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+
+        // Prevent default touch behavior on the canvas
+         canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+        }, true);
+
+        canvas.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+        }, true);
+
+         canvas.addEventListener('touchend', function(e) {
+            e.preventDefault();
+        }, true);
+    </script>
+   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+   <script src="js/firebaseconfig.js"></script>
 </body>
 </html>
+
+
+
+
