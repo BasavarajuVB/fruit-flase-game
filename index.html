@@ -26,27 +26,24 @@
   <script src="./index.js"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready(() => {
-            console.log("Telegram WebApp is ready");
-        });
+    const tg = window.Telegram.WebApp;
+    tg.ready(() => {
+        console.log("Telegram WebApp is ready");
+    });
 
-        // The 'canvas' and 'container' are already being handled in the index.js file.
-        // No need to redeclare them here.
+    // Prevent default touch behavior on the canvas
+    const canvas = document.getElementById('gameCanvas');
+    canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+    }, false);
 
-        // Prevent default touch behavior on the canvas
-        const canvas = document.getElementById('gameCanvas');
-        canvas.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-        }, false);
+    canvas.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+    }, false);
 
-        canvas.addEventListener('touchmove', function(e) {
-            e.preventDefault();
-        }, false);
-
-        canvas.addEventListener('touchend', function(e) {
-            e.preventDefault();
-        }, false);
-    </script>
+    canvas.addEventListener('touchend', function(e) {
+        e.preventDefault();
+    }, false);
+  </script>
 </body>
 </html>
