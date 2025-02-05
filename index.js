@@ -10,7 +10,7 @@ canvas.width = canvasWidth;
 canvas.height = canvasHeight;
 const squareMinSize = 20;
 const squareMaxSize = 50;
-const squareSpawnFrequency = 1000;
+const squareSpawnFrequency = 1000 * 0.5;  // Increased spawn rate by 0.5
 const squareBaseSpeed = 5;
 const scorePerSquare = 10;
 const timeBonusPerClock = 5;
@@ -318,7 +318,7 @@ function handleMouseUp() {
 }
 
 function initGame() {
-    setInterval(createSquare, squareSpawnFrequency/squareSpawnAdjust);
+    setInterval(createSquare, squareSpawnFrequency / squareSpawnAdjust);  // Increased frequency by 0.5
     requestAnimationFrame(gameLoop);
     gameTimer();
 
