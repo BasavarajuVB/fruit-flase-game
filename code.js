@@ -37,11 +37,11 @@ const gameWrapper = document.getElementById('game-wrapper');
     element.addEventListener('touchstart', (e) => {
         e.preventDefault();
     }, { passive: false });
-    
+
     element.addEventListener('touchmove', (e) => {
         e.preventDefault();
     }, { passive: false });
-    
+
     element.addEventListener('touchend', (e) => {
         e.preventDefault();
     }, { passive: false });
@@ -67,25 +67,25 @@ function showScorePopup(amount) {
     popup.style.fontWeight = 'bold';
     popup.style.pointerEvents = 'none';
     popup.textContent = amount > 0 ? `+${amount}` : amount;
-    
+
     document.body.appendChild(popup);
-    
+
     let opacity = 1;
     let posY = mouseY;
-    
+
     function animate() {
         opacity -= 0.02;
         posY -= 1;
         popup.style.opacity = opacity;
         popup.style.top = `${posY}px`;
-        
+
         if (opacity > 0) {
             requestAnimationFrame(animate);
         } else {
             popup.remove();
         }
     }
-    
+
     requestAnimationFrame(animate);
 }
 
@@ -113,12 +113,12 @@ function updateSliceEffects() {
         const effect = sliceEffects[i];
         effect.size += 2;
         effect.opacity -= 0.05;
-        
+
         if (effect.opacity <= 0) {
             sliceEffects.splice(i, 1);
             continue;
         }
-        
+
         ctx.save();
         ctx.translate(effect.x, effect.y);
         ctx.rotate(effect.angle);
@@ -175,7 +175,7 @@ function handleCircleCollision(circleIndex) {
     const circle = circles[circleIndex];
     const effectColor = circle.type === 'clock' ? '#2ecc71' : 
                        circle.type === 'bomb' ? '#e74c3c' : '#3498db';
-    
+
     createSliceEffect(circle.x, circle.y, effectColor);
 
     switch (circle.type) {
@@ -194,9 +194,9 @@ function handleCircleCollision(circleIndex) {
 
 function updateGame() {
     if (!gameRunning) return;
-    
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     updateSliceEffects();
 
     for (let i = circles.length - 1; i >= 0; i--) {
@@ -225,55 +225,36 @@ function gameLoop() {
     if(gameRunning) requestAnimationFrame(gameLoop);
 }
 
+// --- Removed Firebase-related code ---
+
+let userScore = 0;
+
 function updateUserScore(userId, gameScore) {
-    const db = firebase.database()
-    const userRef = db.ref(`users/${userId}`)
+    // Update the local user score
+    userScore += gameScore;
 
-    userRef
-        .once("value")
-        .then((snapshot) => {
-            if (snapshot.exists()) {
-                const userData = snapshot.val()
-                const currentScore = userData.score || 0
-                const newTotalScore = currentScore + gameScore
+    // Log the updated score to the console (or you can display it on the screen)
+    console.log(`User ${userId} new score: ${userScore}`);
 
-                return userRef.update({
-                    score: newTotalScore,
-                    lastPlayed: Date.now(),
-                })
-            } else {
-                return userRef.set({
-                    score: gameScore,
-                    lastPlayed: Date.now(),
-                })
-            }
-        })
-        .then(() => {
-            console.log("Score updated successfully! Added:", gameScore)
-        })
-        .catch((error) => {
-            console.error("Error updating score:", error)
-        })
+    // Optionally, you can store the score in localStorage or a global variable to persist it across page refreshes
+    localStorage.setItem('userScore', userScore);
 }
 
 function gameTimer() {
-    if(!gameRunning) return;
+    if (!gameRunning) return;
     if (timeLeft <= 0) {
         gameRunning = false;
+
         try {
-            const tg = window.Telegram.WebApp
-            if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-                throw new Error("Telegram WebApp user data not available")
-            }
-    
-            const userId = tg.initDataUnsafe.user.id.toString()
-            updateUserScore(userId, score)
-            alert(`Game Over! Your score: ${score}`)
+            // Simulate getting a userId (In actual implementation, this would be replaced with a real user ID)
+            const userId = "user123";
+            updateUserScore(userId, score);
+            alert(`Game Over! Your score: ${score}`);
         } catch (error) {
-            console.error("Error handling game end:", error)
-            alert(`Game Over! Score: ${score}. Error saving score.`)
+            console.error("Error handling game end:", error);
+            alert(`Game Over! Score: ${score}. Error saving score.`);
         }
-        return
+        return;
     }
     timeLeft--;
     updateTimerDisplay();
@@ -327,7 +308,7 @@ function handleMouseUp() {
 }
 
 function initGame() {
-    setInterval(createCircle, circleSpawnFrequency/circleSpawnAdjust);
+    setInterval(createCircle, circleSpawnFrequency / circleSpawnAdjust);
     gameLoop();
     gameTimer();
 
