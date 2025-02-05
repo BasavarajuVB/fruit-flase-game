@@ -3,74 +3,52 @@ const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
 const timerDisplay = document.getElementById('timer');
 
-// Game Settings
-const canvasWidth = 800;
+// --- Game Settings (Adjust These to your liking) ---
+const canvasWidth = 800; // Adjust as needed
 const canvasHeight = 1000;
 canvas.width = canvasWidth;
 canvas.height = canvasHeight;
-const squareMinSize = 20;
-const squareMaxSize = 50;
-const squareSpawnFrequency = 1000 * 0.5;  // Increased spawn rate by 0.5
-const squareBaseSpeed = 5;
-const scorePerSquare = 10;
-const timeBonusPerClock = 5;
-const scorePenaltyBomb = 50;
-const clockSquareChance = 0.1;
-const bombSquareChance = 0.05;
+const circleMinRadius = 20;
+const circleMaxRadius = 50;
+const circleSpawnFrequency = 1000; // Milliseconds
+const circleBaseSpeed = 5; // Speed of each circle on X and Y
+const scorePerCircle = 10; // Base score for slicing
+const timeBonusPerClock = 5; // Time bonus for clock circle
+const scorePenaltyBomb = 50; // Score penalty for Bomb circle
+const clockCircleChance = 0.1; // 10% chance for clock circle
+const bombCircleChance = 0.05; // 5% chance for bomb circle
+let circleSpeedAdjustment = 1; // Adjust overall circle speed
+let circleSpawnAdjust = 1; // Adjust overall circle spawn rate
 
-let squareSpeedAdjustment = 1;
-let squareSpawnAdjust = 1;
 let score = 0;
 let timeLeft = 60;
 let gameRunning = true;
-let lastSliceTime = 0;
 
-const squares = [];
-let mouseX, mouseY, lastX, lastY;
-let isDragging = false;
-let slicePoints = [];
+const circles = []; // Stores all circles
+let mouseX, mouseY, isDragging = false;
 
-// Prevent scrolling
-const preventScroll = (e) => e.preventDefault();
-[document.getElementById('app-container'),
- document.querySelector('.game-container'),
- document.getElementById('game-wrapper')
-].forEach(element => {
-    element.addEventListener('touchstart', preventScroll, { passive: false });
-    element.addEventListener('touchmove', preventScroll, { passive: false });
-    element.addEventListener('touchend', preventScroll, { passive: false });
+const appContainer = document.getElementById('app-container');
+const gameContainer = document.querySelector('.game-container');
+const gameWrapper = document.getElementById('game-wrapper');
+
+[appContainer, gameContainer, gameWrapper].forEach(element => {
+    element.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+    
+    element.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+    
+    element.addEventListener('touchend', (e) => {
+        e.preventDefault();
+    }, { passive: false });
 });
 
+// Prevent body scrolling
 document.body.style.overflow = 'hidden';
 document.body.style.position = 'fixed';
 document.documentElement.style.overflow = 'hidden';
-
-// Slice effect class
-class SliceEffect {
-    constructor(x1, y1, x2, y2) {
-        this.startX = x1;
-        this.startY = y1;
-        this.endX = x2;
-        this.endY = y2;
-        this.alpha = 1;
-        this.width = 3;
-    }
-
-    draw(ctx) {
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 255, 255, ${this.alpha})`;
-        ctx.lineWidth = this.width;
-        ctx.moveTo(this.startX, this.startY);
-        ctx.lineTo(this.endX, this.endY);
-        ctx.stroke();
-        ctx.closePath();
-        
-        this.alpha -= 0.05;
-        this.width -= 0.1;
-    }
-}
-
-let sliceEffects = [];
 
 function updateScore(amount) {
     score += amount;
@@ -78,275 +56,224 @@ function updateScore(amount) {
 }
 
 function updateTimerDisplay() {
-    timerDisplay.textContent = `Time: ${timeLeft}`;
+  timerDisplay.textContent = `Time: ${timeLeft}`;
 }
 
-function square(x, y, size, type = 'normal') {
-    return {
-        x, y, size,
-        vx: (Math.random() * 2 - 1) * squareBaseSpeed,
-        vy: (Math.random() * 2 - 1) * squareBaseSpeed,
-        type
-    };
+function circle(x, y, radius, type = 'normal') {
+  return { x, y, radius, vx: (Math.random() * 2 - 1) * circleBaseSpeed, vy: (Math.random() * 2 - 1) * circleBaseSpeed, type };
 }
 
-function createSquare() {
-    // Increase spawn rate and speed as time decreases
-    if (timeLeft < 30) {
-        squareSpeedAdjustment = 1.5;
-        squareSpawnAdjust = 1.5;
-    }
-    if (timeLeft < 15) {
-        squareSpeedAdjustment = 2;
-        squareSpawnAdjust = 2;
-    }
-
-    const size = squareMinSize + Math.random() * (squareMaxSize - squareMinSize);
-    const spawnEdge = Math.floor(Math.random() * 4);
+function createCircle() {
+    const radius = circleMinRadius + Math.random() * (circleMaxRadius - circleMinRadius);
     let x, y;
 
-    switch(spawnEdge) {
-        case 0: // top
-            x = Math.random() * canvasWidth;
-            y = -size;
-            break;
-        case 1: // right
-            x = canvasWidth + size;
-            y = Math.random() * canvasHeight;
-            break;
-        case 2: // bottom
-            x = Math.random() * canvasWidth;
-            y = canvasHeight + size;
-            break;
-        case 3: // left
-            x = -size;
-            y = Math.random() * canvasHeight;
-            break;
+    // Try to avoid initial overlaps on the edges of the screen:
+    if (Math.random() < 0.5) {
+      x = Math.random() < 0.5 ? -radius : canvasWidth + radius;
+      y = Math.random() * canvasHeight;
+    }
+    else {
+        x = Math.random() * canvasWidth;
+        y = Math.random() < 0.5 ? -radius : canvasHeight + radius;
     }
 
     let type = 'normal';
-    if (Math.random() < clockSquareChance) type = 'clock';
-    else if (Math.random() < bombSquareChance) type = 'bomb';
+    if (Math.random() < clockCircleChance) type = 'clock';
+    else if (Math.random() < bombCircleChance) type = 'bomb';
 
-    squares.push(square(x, y, size, type));
+    circles.push(circle(x, y, radius, type));
 }
 
-function drawSliceEffect(x1, y1, x2, y2) {
-    sliceEffects.push(new SliceEffect(x1, y1, x2, y2));
-}
-
-function drawSquare(square) {
+function drawCircle(circle) {
     ctx.beginPath();
-    ctx.rect(square.x, square.y, square.size, square.size);
-    
-    switch (square.type) {
+    ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+
+    switch (circle.type) {
         case 'clock':
-            ctx.fillStyle = '#32CD32';
+            ctx.fillStyle = 'green';
             break;
         case 'bomb':
-            ctx.fillStyle = '#FF4500';
+            ctx.fillStyle = 'red';
             break;
         default:
-            ctx.fillStyle = '#4169E1';
+            ctx.fillStyle = 'blue'; // Normal circle
     }
-    
+
     ctx.fill();
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 2;
-    ctx.stroke();
     ctx.closePath();
 }
 
-function handleSquareCollision(squareIndex) {
-    const square = squares[squareIndex];
-    
-    // Add particle effect on collision
-    for (let i = 0; i < 8; i++) {
-        const angle = (Math.PI * 2 * i) / 8;
-        const velocity = 5;
-        particles.push({
-            x: square.x,
-            y: square.y,
-            vx: Math.cos(angle) * velocity,
-            vy: Math.sin(angle) * velocity,
-            alpha: 1,
-            color: square.type === 'clock' ? '#32CD32' : 
-                   square.type === 'bomb' ? '#FF4500' : '#4169E1'
-        });
-    }
+function handleCircleCollision(circleIndex) {
+  const circle = circles[circleIndex];
 
-    switch (square.type) {
-        case 'clock':
-            timeLeft += timeBonusPerClock;
-            break;
-        case 'bomb':
-            updateScore(-scorePenaltyBomb);
-            break;
-        default:
-            updateScore(scorePerSquare);
-    }
+  switch (circle.type) {
+    case 'clock':
+      timeLeft += timeBonusPerClock;
+      break;
+    case 'bomb':
+        updateScore(-scorePenaltyBomb);
+        break;
+    default:
+      updateScore(scorePerCircle);
+  }
 
-    squares.splice(squareIndex, 1);
+  circles.splice(circleIndex, 1);
 }
 
 function updateGame() {
-    if (!gameRunning) return;
+  if (!gameRunning) return;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = circles.length - 1; i >= 0; i--) {
+    let circle = circles[i];
+
+    circle.x += circle.vx * circleSpeedAdjustment;
+    circle.y += circle.vy * circleSpeedAdjustment;
+
+    // Remove circle if it's off the screen
+    if (circle.x + circle.radius < 0 || circle.x - circle.radius > canvasWidth ||
+        circle.y + circle.radius < 0 || circle.y - circle.radius > canvasHeight) {
+        circles.splice(i, 1);
+        continue;
+    }
+
+    drawCircle(circle);
+
+    if (isDragging && isCircleHit(mouseX, mouseY, circle)) {
+        handleCircleCollision(i);
+        break; // only cut one at a time
+    }
+  }
+}
+
+function gameLoop() {
+  updateGame();
+  if(gameRunning) requestAnimationFrame(gameLoop);
+}
+
+// Add this function to handle score updates
+function updateUserScore(userId, gameScore) {
+  const db = firebase.database()
+  const userRef = db.ref(`users/${userId}`)
+
+  userRef
+    .once("value")
+    .then((snapshot) => {
+      if (snapshot.exists()) {
+        // User exists, update the score
+        const userData = snapshot.val()
+        const currentScore = userData.score || 0
+        const newTotalScore = currentScore + gameScore
+
+        return userRef.update({
+          score: newTotalScore,
+          lastPlayed: Date.now(),
+        })
+      } else {
+        // New user, initialize with the game score
+        return userRef.set({
+          score: gameScore,
+          lastPlayed: Date.now(),
+        })
+      }
+    })
+    .then(() => {
+      console.log("Score updated successfully! Added:", gameScore)
+    })
+    .catch((error) => {
+      console.error("Error updating score:", error)
+    })
+}
+
+function gameTimer(){
+    if(!gameRunning) return;
+    if (timeLeft <= 0) {
+        gameRunning = false;
+        try {
+          const tg = window.Telegram.WebApp
+          if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+            throw new Error("Telegram WebApp user data not available")
+          }
     
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw slice effects
-    sliceEffects = sliceEffects.filter(effect => {
-        effect.draw(ctx);
-        return effect.alpha > 0;
-    });
-
-    // Update and draw squares
-    for (let i = squares.length - 1; i >= 0; i--) {
-        let square = squares[i];
-        square.x += square.vx * squareSpeedAdjustment;
-        square.y += square.vy * squareSpeedAdjustment;
-
-        if (square.x + square.size < 0 || 
-            square.x - square.size > canvasWidth ||
-            square.y + square.size < 0 || 
-            square.y - square.size > canvasHeight) {
-            squares.splice(i, 1);
-            continue;
+          const userId = tg.initDataUnsafe.user.id.toString()
+    
+          updateUserScore(userId, score)
+    
+          alert(`Game Over! Your score: ${score}`)
+        } catch (error) {
+          console.error("Error handling game end:", error)
+          alert(`Game Over! Score: ${score}. Error saving score.`)
         }
-
-        drawSquare(square);
-    }
-
-    // Check for slicing
-    if (isDragging && lastX !== undefined) {
-        const dx = mouseX - lastX;
-        const dy = mouseY - lastY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 10) {
-            drawSliceEffect(lastX, lastY, mouseX, mouseY);
-            
-            // Check for square hits
-            squares.forEach((square, index) => {
-                if (isSquareSliced(lastX, lastY, mouseX, mouseY, square)) {
-                    handleSquareCollision(index);
-                }
-            });
-        }
-    }
-
-    lastX = mouseX;
-    lastY = mouseY;
+        return
+      }
+    timeLeft--;
+    updateTimerDisplay();
+    setTimeout(gameTimer, 1000); // Countdown every 1 second
 }
 
-function isSquareSliced(x1, y1, x2, y2, square) {
-    const lineLength = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-    if (lineLength === 0) return false;
-
-    const dot = (((square.x-x1)*(x2-x1)) + ((square.y-y1)*(y2-y1))) / (lineLength**2);
-    const closestX = x1 + (dot * (x2-x1));
-    const closestY = y1 + (dot * (y2-y1));
-
-    if (dot < 0 || dot > 1) return false;
-
-    const distance = Math.sqrt((closestX-square.x)**2 + (closestY-square.y)**2);
-    return distance <= square.size / 2;
+function isCircleHit(x, y, circle) {
+    const distX = x - circle.x;
+    const distY = y - circle.y;
+    return Math.sqrt(distX * distX + distY * distY) <= circle.radius;
 }
 
-// Touch event handlers
 function handleTouchStart(e) {
-    const touch = e.touches[0];
+    e.preventDefault();
+    e.stopPropagation();
     isDragging = true;
-    mouseX = touch.clientX - canvas.offsetLeft;
-    mouseY = touch.clientY - canvas.offsetTop;
-    lastX = mouseX;
-    lastY = mouseY;
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.touches[0].clientX - rect.left;
+    mouseY = e.touches[0].clientY - rect.top;
+    console.log('Touch Start:', mouseX, mouseY); // Debugging
 }
 
 function handleTouchMove(e) {
     if (!isDragging) return;
-    const touch = e.touches[0];
-    mouseX = touch.clientX - canvas.offsetLeft;
-    mouseY = touch.clientY - canvas.offsetTop;
-
-    // Check for square hits
-    squares.forEach((square, index) => {
-        if (isSquareSliced(lastX, lastY, mouseX, mouseY, square)) {
-            handleSquareCollision(index);
-        }
-    });
-
-    lastX = mouseX;
-    lastY = mouseY;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.touches[0].clientX - rect.left;
+    mouseY = e.touches[0].clientY - rect.top;
+    console.log('Touch Move:', mouseX, mouseY); // Debugging
 }
 
-function handleTouchEnd() {
+function handleTouchEnd(e) {
+    e.preventDefault();
+    e.stopPropagation();
     isDragging = false;
-    lastX = undefined;
-    lastY = undefined;
+    console.log('Touch End'); // Debugging
 }
 
-// Mouse event handlers
 function handleMouseDown(e) {
     isDragging = true;
     mouseX = e.clientX - canvas.offsetLeft;
     mouseY = e.clientY - canvas.offsetTop;
-    lastX = mouseX;
-    lastY = mouseY;
 }
 
 function handleMouseMove(e) {
     if (!isDragging) return;
     mouseX = e.clientX - canvas.offsetLeft;
     mouseY = e.clientY - canvas.offsetTop;
-
-    // Check for square hits
-    squares.forEach((square, index) => {
-        if (isSquareSliced(lastX, lastY, mouseX, mouseY, square)) {
-            handleSquareCollision(index);
-        }
-    });
-
-    lastX = mouseX;
-    lastY = mouseY;
 }
 
 function handleMouseUp() {
     isDragging = false;
-    lastX = undefined;
-    lastY = undefined;
 }
 
-function initGame() {
-    setInterval(createSquare, squareSpawnFrequency / squareSpawnAdjust);  // Increased frequency by 0.5
-    requestAnimationFrame(gameLoop);
+// Initialize Game
+function initGame(){
+    setInterval(createCircle, circleSpawnFrequency/circleSpawnAdjust);
+    gameLoop();
     gameTimer();
 
-    canvas.addEventListener('touchstart', handleTouchStart, false);
-    canvas.addEventListener('touchmove', handleTouchMove, false);
-    canvas.addEventListener('touchend', handleTouchEnd, false);
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     canvas.addEventListener('mousedown', handleMouseDown, false);
     canvas.addEventListener('mousemove', handleMouseMove, false);
     canvas.addEventListener('mouseup', handleMouseUp, false);
-}
-
-function gameLoop() {
-    updateGame();
-    requestAnimationFrame(gameLoop);
-}
-
-function gameTimer() {
-    const timer = setInterval(() => {
-        if (timeLeft <= 0) {
-            clearInterval(timer);
-            gameRunning = false;
-            alert('Game Over! Final Score: ' + score);
-        } else {
-            timeLeft -= 1;
-            updateTimerDisplay();
-        }
-    }, 1000);
 }
 
 initGame();
